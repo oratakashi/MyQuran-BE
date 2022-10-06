@@ -9,6 +9,9 @@ use App\Models\Ayat;
 use App\Http\Resources\BaseResource;
 use Illuminate\Support\Facades\Http;
 use Ramsey\Uuid\Uuid;
+use App\Models\AyatIndopak;
+use App\Models\AyatUstmani;
+use Illuminate\Support\Facades\DB;
 
 class CrawlerController extends Controller
 {
@@ -52,26 +55,43 @@ class CrawlerController extends Controller
 
     public function updateAyat()
     {
-        $ayat = Ayat::where("nomor", 1)
-            ->where("idSurah", "!=", 1)
-            ->orderBy("idSurah")
-            ->get()
-            ->toArray();
+        // $ayat = Ayat::where("nomor", 1)
+        //     ->where("idSurah", "!=", 1)
+        //     ->orderBy("idSurah")
+        //     ->get()
+        //     ->toArray();
 
-        $ayat = array_map(function($item) {
-            return [
-                "arabic" => str_replace("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ", "", $item["arabic"]),
-                "id" => $item["id"],
-            ];
-        }, $ayat);
+        // $ayat = DB::table('ayat')
+        //     ->where('idSurah', '!=', 1)
+        //     ->orderBy("idSurah")
+        //     ->join('ayat_indopak', 'ayat.id', '=', 'ayat_indopak.id');
 
-        foreach ($ayat as $item) {
-            Ayat::where("id", $item["id"])
-                ->update(["arabic" => $item["arabic"]]);
-        }
+        // $ayat = array_map(function($item) {
+        //     return [
+        //         "arabic" => str_replace("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ", "", $item["arabic"]),
+        //         "id" => $item["id"],
+        //     ];
+        // }, $ayat);
+
+        // foreach ($ayat as $item) {
+        //     Ayat::where("id", $item["id"])
+        //         ->update(["arabic" => $item["arabic"]]);
+        // }
 
         $bismillah = Ayat::where("idSurah", 1)
             ->where("nomor", 1)
+            ->first();
+
+        $bismillahIndopak = DB::table('ayat')
+            ->where('idSurah', 1)
+            ->where('nomor', 1)
+            ->join('ayat_indopak', 'ayat.id', '=', 'ayat_indopak.id')
+            ->first();
+
+        $bismillahUtsmani = DB::table('ayat')
+            ->where('idSurah', 1)
+            ->where('nomor', 1)
+            ->join('ayat_ustmani', 'ayat.id', '=', 'ayat_ustmani.id')
             ->first();
 
         //Add Bismillah except At Taubah
@@ -80,13 +100,21 @@ class CrawlerController extends Controller
             ->get();
 
         foreach ($surah as $item) {
+            $id = Uuid::uuid4();
             Ayat::create([
-                "id" => Uuid::uuid4(),
-                "arabic" => $bismillah["arabic"],
+                "id" => $id,
                 "translation" => $bismillah["translation"],
                 "nomor" => 0,
                 "latin" => $bismillah["latin"],
                 "idSurah" => $item["id"],
+            ]);
+            AyatIndopak::create([
+                "id" => $id,
+                "arabic" => $bismillahIndopak->arabic
+            ]);
+            AyatUstmani::create([
+                "id" => $id,
+                "arabic" => $bismillahUtsmani->arabic
             ]);
         }
 
@@ -137,7 +165,7 @@ class CrawlerController extends Controller
             if(count($validation) == 0) {
                 Ayat::create([
                     "id" => Uuid::uuid4(),
-                    "arabic" => $item["ar"],
+                    // "arabic" => $item["ar"],
                     "translation" => $item["id"],
                     "nomor" => (int)$item["nomor"],
                     "latin" => $item["tr"],

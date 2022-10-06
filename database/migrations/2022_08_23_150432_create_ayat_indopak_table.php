@@ -13,14 +13,14 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('ayat', function (Blueprint $table) {
+        Schema::create('ayat_indopak', function (Blueprint $table) {
             $table->char('id', 36)->primary();
-            $table->text("translation");
-            $table->integer("nomor");
-            $table->text("latin");
-            $table->integer("idSurah")->index("idSurah");
+            $table->text("arabic");
             $table->timestamps();
-            $table->foreign("idSurah")->references("id")->on("surah");
+            $table->foreign("id")
+                ->references("id")
+                ->on("ayat")
+                ->cascadeOnDelete();
         });
     }
 
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('ayat');
+        Schema::dropIfExists('ayat_indopak');
     }
 };
